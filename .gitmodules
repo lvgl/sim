@@ -1,3 +1,3 @@
 [submodule "micropython"]
-	path = micropython
+	path = v6/micropython
 	url = https://github.com/littlevgl/lv_micropython
