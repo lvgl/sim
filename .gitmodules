@@ -1,6 +1,8 @@
 [submodule "micropython"]
 	path = v6/micropython
 	url = https://github.com/littlevgl/lv_micropython
+        branch = lvgl_javascript_v6
 [submodule "v7/micropython"]
 	path = v7/micropython
 	url = https://github.com/lvgl/lv_micropython.git
+        branch = lvgl_javascript
