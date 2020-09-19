@@ -18,7 +18,7 @@ jobs:
           git submodule update --remote
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "Push staging changes for ${{ env.GITHUB_SHA }}" -a
+          git diff-index --quiet HEAD || git commit -m "Push staging changes for ${{ env.GITHUB_SHA }}" -a
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
