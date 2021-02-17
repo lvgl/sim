@@ -2,3 +2,7 @@
 	path = v6/micropython
 	url = https://github.com/littlevgl/lv_micropython
         branch = lvgl_javascript_v6
+[submodule "v7/micropython/ports/javascript"]
+	path = v7/micropython/ports/javascript
+	url = https://github.com/lvgl/lv_micropython
+	branch = gh-pages
