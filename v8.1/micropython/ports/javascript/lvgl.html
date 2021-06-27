@@ -134,7 +134,7 @@
 				throw "Could not retrieve parent element";
 			}
 			/*Initialize MicroPython itself*/
-			mp_js_init(8 * 1024 * 1024); 
+			mp_js_init(1 * 1024 * 1024); 
 
 			var compressedScript = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-cscript");
 			if(compressedScript !== undefined && compressedScript !== null)
