@@ -28,8 +28,8 @@ var Module = {};
 
 Module['print'] = function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-    var mp_js_stdout = window.top.document.getElementById('mp_js_stdout');
-    var print = new Event('print');
+    var mp_js_stdout = window.top;
+    var print = new Event('python:stdout_print');
     print.data = text + "\r\n";
     mp_js_stdout.dispatchEvent(print);
 }
@@ -8671,8 +8671,8 @@ function mp_js_sleep_with_intr(ms){ Asyncify.handleSleep(wakeUp => { window.do_s
                   process.stdout.write(b);
               } else {
                   var c = String.fromCharCode(getValue(ptr + i, 'i8'));
-                  var mp_js_stdout = window.top.document.getElementById('mp_js_stdout');
-                  var print = new Event('print');
+                  var mp_js_stdout = window.top;
+                  var print = new Event('python:stdout_print');
                   print.data = c;
                   mp_js_stdout.dispatchEvent(print);
               }

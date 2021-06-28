@@ -43,7 +43,7 @@
         }
 		/*Write text to the terminal */
 		function sendText(text) {
-			var print = new Event('print');
+			var print = new Event('python:stdout_print');
 			print.data = text;
 			if(mp_js_stdout === null) {
 				console.log("Stdout is null???");
@@ -96,7 +96,7 @@
 			"import lvgl as lv",
 			"lv.init()",
 			"import SDL",
-                        "SDL.init()",
+            "SDL.init()",
 
 			/* Register SDL display driver. */
 			"disp_buf1 = lv.disp_buf_t()",
@@ -129,9 +129,9 @@
 		window.startRunning = function() {
 			/*Setup printing event handler*/
 
-			mp_js_stdout = window.parent.document.getElementById("mp_js_stdout");
+			mp_js_stdout = window.parent;
 			if(mp_js_stdout === undefined || mp_js_stdout === null) {
-				throw "Could not retrieve parent element";
+				throw "Could not retrieve parent window";
 			}
 			/*Initialize MicroPython itself*/
 			mp_js_init(1 * 1024 * 1024); 
