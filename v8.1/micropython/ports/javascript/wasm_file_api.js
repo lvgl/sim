@@ -1,6 +1,29 @@
 // ============================== FILE I/O (sync => bad) =================================
+
 window.urls = {"name":"webcache","id":-1, "index": "/index.html"}
 
+
+
+var searchParams = new URL(window.top.location.href).searchParams;
+
+var scriptLocationPrefix = null;
+
+if(searchParams.get("script") != null) {
+    let scriptPath = new URL(searchParams.get("script"));
+    scriptLocationPrefix = scriptPath.origin + scriptPath.pathname.substring(0, scriptPath.pathname.lastIndexOf("/")+1);
+    console.warn("Attempts to open() files using relative paths will also try:", scriptLocationPrefix);
+} else {
+    console.error("Attempts to open() files using relative paths will fail! No script parameter in URL.");
+}
+
+function allow_relative(url) {
+    const isAllowed = scriptLocationPrefix != null && !(/^https?:/.test(url));
+    return isAllowed;
+}
+
+function get_relative(url) {
+    return scriptLocationPrefix + url;
+}
 
 function awfull_get(url) {
     function updateProgress (oEvent) {
@@ -22,33 +45,43 @@ function awfull_get(url) {
         window.currentTransferSize = -1 ;
     }
 
-    var oReq = new XMLHttpRequest();
+    
 
-    function transferComplete(evt) {
-        if (oReq.status==404){
-            console.log("awfull_get: File not found : "+ url );
-            window.currentTransferSize = -1 ;
+    function buildXMLRequest(url) {
+        var oReq = new XMLHttpRequest();
 
-        } else {
-            window.currentTransferSize = oReq.response.length;
-            console.log("awfull_get: Transfer is complete saving : "+window.currentTransferSize);
+        function transferComplete(evt) {
+            if (oReq.status==404){
+                //console.log("awfull_get: File not found : "+ url );
+                window.currentTransferSize = -1 ;
+    
+            } else {
+                window.currentTransferSize = oReq.response.length;
+                //console.log("awfull_get: Transfer is complete saving : "+window.currentTransferSize);
+            }
         }
+        oReq.overrideMimeType("text/plain; charset=x-user-defined");
+        oReq.addEventListener("progress", updateProgress);
+        oReq.addEventListener("load", transferComplete);
+        oReq.addEventListener("error", transferFailed);
+        oReq.addEventListener("abort", transferCanceled);
+        oReq.open("GET",url ,false);
+        return oReq;
     }
 
-    oReq.overrideMimeType("text/plain; charset=x-user-defined");
-    oReq.addEventListener("progress", updateProgress);
-    oReq.addEventListener("load", transferComplete);
-    oReq.addEventListener("error", transferFailed);
-    oReq.addEventListener("abort", transferCanceled);
-    oReq.open("GET",url ,false);
-    oReq.send();
-    return oReq.response
+    var defaultReq = buildXMLRequest(url);
+    defaultReq.send();
+    if(defaultReq.status == 404 && allow_relative(url)) {
+        defaultReq = buildXMLRequest(get_relative(url))
+        defaultReq.send();
+    }
+    return defaultReq.response
 }
 
 
 
 
-function wasm_file_open(url, cachefile){
+window.wasm_file_open = function(url, cachefile) {
     var dirpath = ""
     if ( url == cachefile ) {
         //we need to build the target path, it could be a module import.
@@ -116,7 +149,7 @@ function wasm_file_open(url, cachefile){
 
 
 
-function wasm_file_exists(url, need_dot) {
+window.wasm_file_exists = function(url, need_dot) {
     // need_dot reminds we can't check for directory on webserver
     // but we can check for a know file (probaby with a dot) under it
     // -1 not found , 1 is a file on server , 2 is a directory
@@ -127,6 +160,15 @@ function wasm_file_exists(url, need_dot) {
         xhr.send()
         if (xhr.status == 200 )
             return code
+        
+        if(allow_relative(url) && params.get("script") != null) {
+            /* Try relative */
+            xhr.open('HEAD', get_relative(url), false)
+            xhr.send()
+            if (xhr.status == 200 )
+                return code
+        }
+        
         return -1
     }
 
