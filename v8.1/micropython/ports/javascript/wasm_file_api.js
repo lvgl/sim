@@ -16,8 +16,11 @@ if(searchParams.get("script") != null) {
     console.error("Attempts to open() files using relative paths will fail! No script parameter in URL.");
 }
 
+function is_relative(url) {
+    return !(/^https?:/.test(url));
+}
 function allow_relative(url) {
-    const isAllowed = scriptLocationPrefix != null && !(/^https?:/.test(url));
+    const isAllowed = scriptLocationPrefix != null && is_relative(url);
     return isAllowed;
 }
 
@@ -68,14 +71,21 @@ function awfull_get(url) {
         oReq.open("GET",url ,false);
         return oReq;
     }
-
-    var defaultReq = buildXMLRequest(url);
-    defaultReq.send();
-    if(defaultReq.status == 404 && allow_relative(url)) {
+    var defaultReq = null;
+    if(!is_relative(url)) {
+        defaultReq = buildXMLRequest(url);
+        defaultReq.send();
+    }
+    if((defaultReq == null || defaultReq.status == 404) && allow_relative(url)) {
         defaultReq = buildXMLRequest(get_relative(url))
         defaultReq.send();
     }
-    return defaultReq.response
+    if(defaultReq != null)
+        return defaultReq.response
+    else {
+        window.currentTransferSize = -1 ;
+        return "";
+    }
 }
 
 
