@@ -60,8 +60,8 @@
             console.warn("running init script");
             mp_js_do_str(`
 import imp, usys as sys
-sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/lib')
 sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/driver/js')
+sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/lib')
             `);
             console.warn("running main script");
 			mp_js_do_str(script);
