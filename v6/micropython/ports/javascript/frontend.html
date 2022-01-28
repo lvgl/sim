@@ -1,0 +1,249 @@
+<!doctype html>
+<!-- Updated for 6.0, trigger update -->
+<html>
+	<head>
+		<meta charset="utf-8">
+		
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600">
+		
+		<link rel="stylesheet" href="https://lvgl.io/assets/bootstrap/css/bootstrap.min.css"/>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.4/xterm.min.css" />
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/css/all.min.css"/>
+		<title>LittlevGL/MicroPython Simulator</title>
+		<style>
+			* {
+				font-size: normal;
+			}
+			html, body {
+				width: 100%;
+				height: 100%;
+				min-width: 100%;
+				min-height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			#mp_js_stdout {
+				display: inline-block;
+				vertical-align: top;
+			}
+			#editor {
+				position: relative;
+				flex: 1 1 50%;
+				overflow: hidden;
+			}
+			iframe {
+				width: 0;
+				height: 0;
+				display: inline-block;
+				position: absolute;
+				top: 0;
+				left: 0;
+				border: none;
+			}
+			#canvas {
+				border: 4px black solid;
+				box-sizing: content-box;
+				vertical-align: top;
+				display: inline-block;
+				flex: none;
+				width: 480px;
+				height: 320px;
+ 				min-width: 0;
+			};
+			a { white-space: nowrap; }
+			.flex-container {
+				display: flex;
+				flex-direction: row;
+			}
+			.display-objects {
+				display: flex;
+				flex-direction: column;
+			}
+			#mp_js_stdout_wrapper {
+				flex: 1 1 auto;
+                                position: relative;
+				height: 328px;
+				background-color: black;
+			}
+                        #mp_js_stdout {
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                        }
+			.ace_editor * {
+				font-size: 12px;
+				line-height: normal;
+			}
+			a.disabled {
+				/* Make the disabled links grayish*/
+				color: gray;
+			}
+			a.disabled:hover {
+				text-decoration: none;
+				color: gray;
+				pointer-events: none;
+			}
+			.sliderticks {
+			display: flex;
+			justify-content: space-between;
+			padding-left: 15px;
+			padding-right: 20px;
+			width: 100%;
+			position: absolute;
+			top: 1em;
+			left: 0;
+			z-index: 0;
+			}
+
+			.sliderticks option {
+			position: relative;
+			display: none;
+			justify-content: center;
+			text-align: center;
+			width: 0.1em;
+			background: #D3D3D3;
+			height: 0.3em;
+			margin: 0 0 0.5em 0;
+			}
+			#link {
+				max-width: 510px;
+			}
+			#link[href=""] {
+				display: none;
+			}
+			.controls {
+				display: inline-flex;
+				align-items: center;
+				align-content: center;
+				height: 100%;
+				margin: 0 1em;
+			}
+			.no-iframe {
+				flex: 1 1 33.3%;
+			}
+			button {
+				margin: 4px;
+			}
+			#save-button > * {
+				pointer-events: none;
+			}
+			.header-container {
+				display: flex;
+				width: 100%;
+				height: 100%;
+				flex-direction: column;
+			}
+			.lvgl-header {
+				flex: 0 0 auto;
+				height: 3.5em;
+				margin-bottom: 0;
+			}
+			.flex-container {
+				flex: 1 1 auto;
+			}
+			.slider-container {
+				height: 1.5em;
+				position: relative;
+				display: inline-flex;
+				justify-content: center;
+				align-items: center;
+			}
+			.modal {
+				text-align: center;
+			}
+
+			@media screen and (min-width: 768px) { 
+				.modal:before {
+					display: inline-block;
+					vertical-align: middle;
+					content: " ";
+					height: 100%;
+				}
+			}
+
+			.modal-dialog {
+			display: inline-block;
+			text-align: left;
+			vertical-align: middle;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.4.0/umd/popper.min.js"></script>
+		<script src="https://lvgl.io/assets/bootstrap/js/bootstrap.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/addons/fit/fit.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.js" type="text/javascript" charset="utf-8"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js" integrity="sha256-S1J4GVHHDMiirir9qsXWc8ZWw74PHHafpsHp5PXtjTs=" crossorigin="anonymous"></script>
+	
+	</head>
+	<body>
+		<!-- The modal -->
+		<div class="modal fade" id="about-modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						<h4 class="modal-title" id="modalLabel">About the simulator</h4>
+					</div>
+					<div class="modal-body">
+						This is the JavaScript version of MicroPython, plus the <a href="https://github.com/littlevgl/lv_binding_micropython">LittlevGL bindings for MicroPython</a>.
+						<p></p>
+						You can type your own Python code into the prompt in the usual way, or by using the editor. When you want to run your customized script, click Restart. 
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="header-container">
+			<nav class="lvgl-header navbar navbar-dark bg-dark">
+				<div class="container-fluid" style="height: 100%;">
+					<!-- Brand and toggle get grouped for better mobile display -->
+					<div class="navbar-header">
+						<span class="navbar-brand">LittlevGL/MicroPython simulator</span>
+					</div>
+					<div class="controls navbar-left">
+						<button type="button" class="btn btn-primary" disabled="disabled" id="run-button" onclick="window.runScript();"><i style="transform: scaleX(-1);" class="fas fa-redo-alt"></i> <span>Restart</span></button>
+						<button type="button" class="btn btn-primary" id="save-button" onclick="window.save(event);"><i class="fas fa-save"></i> <span>Save</span></button>
+						<a target="_blank" href="" id="link"></a>
+					</div>
+					<div class="controls navbar-right">
+						<div style="display: inline-flex; justify-content: center; align-items: center; height: 100%;">
+							<span style="font-weight: 400; color: white;">Revision History</span>
+							<div class="slider-container">
+								<input class="slider" id="history" type="range" list="history_data" name="history" step="1"
+										min="0" max="0" value="0" onchange="load_revision(this.list.children[this.value].dataset['value'], false)"/>
+								<datalist class="sliderticks" id="history_data">
+									<option value="0"/>
+								</datalist>
+							</div>
+						</div>
+						<ul class="nav navbar-nav">
+							<li><a target="_blank" href="https://github.com/littlevgl/lv_binding_micropython/tree/master/examples">Examples</a></li>
+							<li><a href="#" role="button" data-toggle="modal" data-target="#about-modal">Help</a></li>
+						</ul>
+					</div>
+				</div>
+			</nav>
+			<div class="flex-container">
+				<div id="editor">print("Hello world")</div>
+				<div class="display-objects">
+					
+					<canvas id="canvas" title="This is the virtual LittlevGL screen" width="480" height="320" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+									<div id="mp_js_stdout_wrapper">
+											<div id="mp_js_stdout"></div>
+									</div>
+									
+				</div>
+			</div>
+		</div>
+		<iframe src="about:blank" id="emscripten-iframe"></iframe>
+        
+		<script src="frontend_src/main.js"></script>
+	</body>
+</html>

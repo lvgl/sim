@@ -1,0 +1,33 @@
+{
+  "name": "lv_mp_sim",
+  "version": "1.0.0",
+  "description": "MicroPython.js ==============",
+  "main": "frontend_src/main.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "clean": "rm -rf bundle_out/* && ./build_workers.sh",
+    "bundle": "parcel build frontend.html -o index.html -d bundle_out --no-source-maps --public-url ./",
+    "dev": "parcel frontend.html -o index.html -d bundle_out --no-source-maps --public-url ./",
+    "build:wasm": "make -j4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/littlevgl/lv_micropython.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/littlevgl/lv_micropython/issues"
+  },
+  "homepage": "https://github.com/littlevgl/lv_micropython#readme",
+  "devDependencies": {
+    "parcel": "^1.12.4"
+  },
+  "dependencies": {
+    "browserslist": "^4.8.6",
+    "caniuse-lite": "^1.0.30001025",
+    "monaco-editor": "^0.19.3"
+  }
+}
