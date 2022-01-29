@@ -54,17 +54,17 @@
 			var url = [location.protocol, '//', location.host, location.pathname].join('');
 			window.location.replace(url + "?env=dev&script=" + target_script);
 		}
-		function decompressScript(compressed) {
+		async function decompressScript(compressed) {
             var lvBindingsCommitHash = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-lv-bindings-commit-hash");
 			var script = LZString.decompressFromEncodedURIComponent(compressed);
             console.warn("running init script");
-            mp_js_do_str(`
+            await mp_js_do_str(`
 import imp, usys as sys
 sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/driver/js')
 sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/lib')
             `);
             console.warn("running main script");
-			mp_js_do_str(script);
+			await mp_js_do_str(script);
 		}
 
 		function getSearchArg(argname) {
@@ -85,7 +85,7 @@ sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropyt
 
         var inputChars = [];
 		/*Initialization function*/
-		window.startRunning = function() {
+		window.startRunning = async function() {
 			/*Setup printing event handler*/
 
 			mp_js_stdout = window.parent;
@@ -96,8 +96,16 @@ sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropyt
 			mp_js_init(1 * 1024 * 1024); 
 
 			var compressedScript = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-cscript");
-			if(compressedScript !== undefined && compressedScript !== null)
-				decompressScript(compressedScript);
+			if(compressedScript !== undefined && compressedScript !== null) {
+                try {
+                    await decompressScript(compressedScript);
+                } catch(e) {
+                    console.error(e);
+                    sendText("An error occured while loading, check browser console");
+                    window.top.reenableButton();
+                    return;
+                }
+            }
 
 			/*Setup lv_task_handler loop*/
             var the_mp_handle_pending = Module.cwrap('mp_handle_pending', null, [], { async: true });
