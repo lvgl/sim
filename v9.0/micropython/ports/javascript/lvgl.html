@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- Updated for 6.0 -->
+<html>
+  <head>
+    <style>
+		body {
+			width: 100%;
+			box-sizing: border-box;
+			padding: 0;
+			margin: 0;
+			text-align: center;
+		}
+	</style>
+	<title>hidden iframe</title>
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/BrowserFS/2.0.0/browserfs.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.js" type="text/javascript" charset="utf-8"></script>
+  </head>
+  <body>
+	<!-- scripts -->
+	<script src="wasm_file_api.js"></script>
+    <script src="micropython.js"></script>
+    <script>
+		var prevQuery = document.querySelector;
+		document.querySelector = function(selector) {
+			if(selector == "#canvas")
+				return window.top.document.getElementById('canvas');
+			else
+				return prevQuery(selector);
+		}
+        var mp_js_stdout;
+        var currentSleepingResolve = null;
+        window.do_sleep_with_intr = function(ms, cb) {
+            var i = setTimeout(() => {
+                currentSleepingResolve = null;
+                cb(0);
+            }, ms);
+            currentSleepingResolve = function() {
+                clearTimeout(i);
+                currentSleepingResolve = null;
+                cb(1);
+            };
+        }
+		/*Write text to the terminal */
+		function sendText(text) {
+			var print = new Event('python:stdout_print');
+			print.data = text;
+			if(mp_js_stdout === null) {
+				console.log("Stdout is null???");
+			}
+			mp_js_stdout.dispatchEvent(print);
+		}
+		function reloadScript(target_script) {
+			var url = [location.protocol, '//', location.host, location.pathname].join('');
+			window.location.replace(url + "?env=dev&script=" + target_script);
+		}
+		async function decompressScript(compressed) {
+            var lvBindingsCommitHash = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-lv-bindings-commit-hash");
+			var script = LZString.decompressFromEncodedURIComponent(compressed);
+            console.warn("running init script");
+            await mp_js_do_str(`
+import imp, usys as sys
+sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/driver/js')
+sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropython/${lvBindingsCommitHash}/lib')
+            `);
+            console.warn("running main script");
+			await mp_js_do_str(script);
+		}
+
+		function getSearchArg(argname) {
+			/* Run custom script if passed */
+			var custom = undefined;
+			try {
+				custom = new URL(window.location.href).searchParams.get(argname);
+			} catch (e) {
+				console.log(e + ": URL seems to be unsupported");
+			}
+			return custom;
+		}
+
+		Module.canvas = (function() {
+			var canvas = window.top.document.getElementById('canvas');
+			return canvas;
+		})(); 
+
+        var inputChars = [];
+		/*Initialization function*/
+		window.startRunning = async function() {
+			/*Setup printing event handler*/
+
+			mp_js_stdout = window.parent;
+			if(mp_js_stdout === undefined || mp_js_stdout === null) {
+				throw "Could not retrieve parent window";
+			}
+			/*Initialize MicroPython itself*/
+			mp_js_init(1 * 1024 * 1024); 
+
+			var compressedScript = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-cscript");
+			if(compressedScript !== undefined && compressedScript !== null) {
+                try {
+                    await decompressScript(compressedScript);
+                } catch(e) {
+                    console.error(e);
+                    sendText("An error occured while loading, check browser console");
+                    window.top.reenableButton();
+                    return;
+                }
+            }
+
+			/*Setup lv_task_handler loop*/
+            var the_mp_handle_pending = Module.cwrap('mp_handle_pending', null, [], { async: true });
+            var lastPromise = null;
+			async function handle_pending() {
+                var startTime = performance.now();
+                while(inputChars.length > 0) {
+                    c = inputChars.shift();
+                    if(c == 3 && currentSleepingResolve != null) {
+                        currentSleepingResolve();
+                        if(lastPromise != null) {
+                            await lastPromise;
+                            lastPromise = null;
+                        }
+                    } else {
+                        if(lastPromise != null) {
+                            await lastPromise;
+                            lastPromise = null;
+                        }
+                        lastPromise = mp_js_process_char(c);
+                    }
+                }
+                
+                if(currentSleepingResolve == null) {
+                    if(lastPromise != null) {
+                        await lastPromise;
+                    }
+                    lastPromise = the_mp_handle_pending();
+                }
+                setTimeout(handle_pending, Math.max(0, 5-(performance.now()-startTime)));
+			}
+			/*Initialize the REPL.*/
+                        mp_js_init_repl();
+			/*Start the main loop, asynchronously.*/
+			handle_pending();
+			window.top.reenableButton();
+		}
+                window.process_char = function(c) {
+                    inputChars.push(c);
+                }
+    </script>
+  </body>
+</html>
+
