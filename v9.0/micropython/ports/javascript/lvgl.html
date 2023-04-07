@@ -81,7 +81,7 @@ sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropyt
 		Module.canvas = (function() {
 			var canvas = window.top.document.getElementById('canvas');
 			return canvas;
-		})(); 
+		})();
 
         var inputChars = [];
 		/*Initialization function*/
@@ -92,8 +92,16 @@ sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropyt
 			if(mp_js_stdout === undefined || mp_js_stdout === null) {
 				throw "Could not retrieve parent window";
 			}
+			var requestedMemoryStr = new URL(window.parent.location.href).searchParams.get("memory");
+			var requestedMemory = 1 * 1024 * 1024;
+			if(requestedMemory != null) {
+				requestedMemoryStr = parseInt(requestedMemoryStr);
+				if(!isNaN(requestedMemoryStr) && requestedMemoryStr > 0)
+					requestedMemory = requestedMemoryStr;
+			}
 			/*Initialize MicroPython itself*/
-			mp_js_init(1 * 1024 * 1024); 
+			console.log("Loading with " + requestedMemory + " bytes of heap");
+			mp_js_init(requestedMemory);
 
 			var compressedScript = window.parent.document.getElementById("emscripten-iframe").getAttribute("data-cscript");
 			if(compressedScript !== undefined && compressedScript !== null) {
@@ -128,7 +136,7 @@ sys.path.append('https://raw.githubusercontent.com/littlevgl/lv_binding_micropyt
                         lastPromise = mp_js_process_char(c);
                     }
                 }
-                
+
                 if(currentSleepingResolve == null) {
                     if(lastPromise != null) {
                         await lastPromise;
